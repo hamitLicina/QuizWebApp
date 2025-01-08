@@ -15,6 +15,8 @@ function App() {
   const [showResult, setShowResult] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [timeLeft, setTimeLeft] = useState<number>(30);
+  const [isTimerActive, setIsTimerActive] = useState<boolean>(false);
 
   useEffect(() => {
     const fetchQuestions = async () => {
@@ -33,6 +35,37 @@ function App() {
     fetchQuestions();
   }, []);
 
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    
+    if (isTimerActive && timeLeft > 0) {
+      timer = setInterval(() => {
+        setTimeLeft((prev) => prev - 1);
+      }, 1000);
+    } else if (timeLeft === 0) {
+      handleTimeUp();
+    }
+
+    return () => clearInterval(timer);
+  }, [timeLeft, isTimerActive]);
+
+  useEffect(() => {
+    if (questions.length > 0 && !showResult) {
+      setTimeLeft(30);
+      setIsTimerActive(true);
+    }
+  }, [currentQuestion, questions]);
+
+  const handleTimeUp = () => {
+    if (currentQuestion + 1 < questions.length) {
+      setCurrentQuestion(currentQuestion + 1);
+      setTimeLeft(30);
+    } else {
+      setShowResult(true);
+      setIsTimerActive(false);
+    }
+  };
+
   const handleAnswer = (selectedOption: number) => {
     if (selectedOption === questions[currentQuestion].correct_answer) {
       setScore(score + 1);
@@ -40,8 +73,10 @@ function App() {
 
     if (currentQuestion + 1 < questions.length) {
       setCurrentQuestion(currentQuestion + 1);
+      setTimeLeft(30);
     } else {
       setShowResult(true);
+      setIsTimerActive(false);
     }
   };
 
@@ -82,6 +117,17 @@ function App() {
           {!showResult && questions.length > 0 ? (
             <>
               <div className="max-w-md mx-auto">
+                <div className="mb-4 text-center">
+                  <div className={`text-xl font-bold ${timeLeft <= 10 ? 'text-red-500' : 'text-gray-700'}`}>
+                    Kalan Süre: {timeLeft} saniye
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2.5 mt-2">
+                    <div 
+                      className="bg-blue-600 h-2.5 rounded-full transition-all duration-1000" 
+                      style={{ width: `${(timeLeft / 30) * 100}%` }}
+                    ></div>
+                  </div>
+                </div>
                 <div className="mb-4 text-center">
                   <span className="text-gray-500">
                     Soru {currentQuestion + 1}/{questions.length}
